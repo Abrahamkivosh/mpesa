@@ -42,6 +42,16 @@ class MpesaService
         $response = Http::withBasicAuth($this->consumer_key, $this->consumer_secret)->get($url);
         return $response->json()['access_token'];
     }
+    /**
+     * Generate the security credential
+     * @return string
+     */
+    private function generatePassword() : string {
+        $time = date('YmdHis');
+        // dd($this->short_code);
+        $SecurityCredential  = base64_encode($this->short_code . $this->pass_key . $time);
+        return  $SecurityCredential;
+    }
 
     /**
      * lipa na mpesa online payment
@@ -53,25 +63,27 @@ class MpesaService
      */
     public function lipaNaMpesaOnline(string $phone, int $amount, string $account_reference, string $transaction_description)
     {
-        $url = "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest";
-        $timestamp = date('YmdHis');
-        $password = base64_encode($this->short_code . $this->pass_key . $timestamp);
-        $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . $this->generateAccessToken(),
+        $api_url = "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest";
+        $access_token = $this->generateAccessToken();
+        $headers = [
+            'Authorization' => 'Bearer ' . $access_token,
             'Content-Type' => 'application/json',
-        ])->post($url, [
-            'BusinessShortCode' => $this->short_code,
-            'Password' => $password,
-            'Timestamp' => $timestamp,
-            'TransactionType' => 'CustomerPayBillOnline',
-            'Amount' => $amount,
-            'PartyA' => $phone,
-            'PartyB' => $this->short_code,
-            'PhoneNumber' => $phone,
-            'CallBackURL' => $this->callback_url,
-            'AccountReference' => $account_reference,
-            'TransactionDesc' => $transaction_description,
-        ]);
+        ];
+        $data = [ 
+            "BusinessShortCode"=> $this->short_code,
+            "Password"=>  $this->generatePassword(),
+            "Timestamp"=> date('YmdHis'),
+            "TransactionType"=> "CustomerPayBillOnline",
+            "Amount"=> $amount,
+            "PartyA"=> $phone,
+            "PartyB"=> $this->short_code,
+            "PhoneNumber"=> $phone,
+            "CallBackURL"=> $this->callback_url,
+            "AccountReference"=> $account_reference,
+            "TransactionDesc"=> $transaction_description
+        ];
+
+        $response = Http::withHeaders($headers)->post($api_url, $data);
         return $response->json();
     }
 
