@@ -26,7 +26,7 @@ class PaymentController extends Controller
     public function callback(Request $request): void
     {
         $data = $request->all();
-        $response = json_encode($data);
+        $response = $data;
         // log the response
         Log::info($response);
     }
